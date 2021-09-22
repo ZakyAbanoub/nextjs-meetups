@@ -1,54 +1,64 @@
-import MeetupDetail from "../../components/meetups/MeetupDetail";
+import MeetupDetail from '../../components/meetups/MeetupDetail';
+import { Fragment } from 'react';
+import Head from 'next/head';
+import { MongoClient, ObjectId } from 'mongodb';
 
-const MeetupDetails = (props) => {
-  return (
-    <MeetupDetail
-      image={props.meetupData.image}
-      title="A Fisrt Meetup"
-      address="Some Address 4, 1425 Some City"
-      description="This is a description"
-    />
-  );
+const MeetupDetails = props => {
+    return (
+        <Fragment>
+            <Head>
+                <title> {props.meetupData.title}</title>
+                <meta name="description" content={props.meetupData.description} />
+            </Head>
+            <MeetupDetail image={props.meetupData.image} title={props.meetupData.title} address={props.meetupData.address} description={props.meetupData.description} />
+        </Fragment>
+    );
 };
 
 //When i want to create a dynamic Page
 export async function getStaticPaths() {
-  return {
-    fallback: false,
-    paths: [
-      {
-        params: {
-          meetupId: "m1",
-        },
-      },
-      {
-        params: {
-          meetupId: "m2",
-        },
-      },
-    ],
-  };
+    const client = await MongoClient.connect('mongodb+srv://abanoub_zaky:bebobebo@cluster0.oxo4t.mongodb.net/meetups?retryWrites=true&w=majority');
+    const db = client.db();
+
+    const meetupsCollection = db.collection('meetups');
+    let meetups = await meetupsCollection.find({}, { _id: 1 }).toArray();
+
+    client.close();
+
+    return {
+        fallback: false,
+        paths: meetups.map(meetup => ({
+            params: {
+                meetupId: meetup._id.toString(),
+            },
+        })),
+    };
 }
 
 // When i want to create a static page - Revalidate: after how many seconds the page will be built on the server
 // If i want to build the page every request so i have to use getServerSideProps
 export async function getStaticProps(context) {
-  const meetupId = context.params.meetupId;
+    const meetupId = context.params.meetupId;
 
-  console.log(meetupId);
+    const client = await MongoClient.connect('mongodb+srv://abanoub_zaky:bebobebo@cluster0.oxo4t.mongodb.net/meetups?retryWrites=true&w=majority');
+    const db = client.db();
 
-  return {
-    props: {
-      meetupData: {
-        id: "m1",
-        image:
-          "https://upload.wikimedia.org/wikipedia/commons/d/d3/Stadtbild_M%C3%BCnchen.jpg",
-        title: "A Fisrt Meetup",
-        address: "Some Address 4, 1425 Some City",
-        description: "This is some Description",
-      },
-    },
-  };
+    const meetupsCollection = db.collection('meetups');
+    let singleMeetup = await meetupsCollection.findOne({ _id: ObjectId(meetupId) });
+
+    client.close();
+
+    return {
+        props: {
+            meetupData: {
+                id: singleMeetup._id.toString(),
+                title: singleMeetup.title,
+                image: singleMeetup.image,
+                address: singleMeetup.address,
+                description: singleMeetup.description,
+            },
+        },
+    };
 }
 
 export default MeetupDetails;

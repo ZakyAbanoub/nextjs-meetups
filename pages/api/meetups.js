@@ -14,7 +14,7 @@ async function handler(req, res) {
   console.log(result);
   client.close();
 
-  res.status(200).json({ message: "Meetups Are Ready!" });
+  res.status(200).json(result);
 }
 
 export default handler;
